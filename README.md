@@ -26,6 +26,28 @@ Also, remember to adjust the Hand-Eye-Calibration in `eval_ros_Pose.py` and `eva
     pip install -r requirements.txt
     ```
 
+3. Install [FoundationPose](https://github.com/NVlabs/FoundationPose) (Docker, CUDA 12.1 for RTX 40-series):
+    ```bash
+    # image (China mirror if docker.io fails)
+    docker pull docker.m.daocloud.io/shingarey/foundationpose_custom_cuda121:latest
+    docker tag docker.m.daocloud.io/shingarey/foundationpose_custom_cuda121:latest foundationpose:latest
+
+    # first launch + one-time build (inside container)
+    cd FoundationPose/docker && bash run_container.sh
+    bash build_all.sh
+
+    # weights (wget from HF mirror; put under FoundationPose/weights/)
+    mkdir -p FoundationPose/weights/{2023-10-28-18-33-37,2024-01-11-20-02-45}
+    wget -c https://hf-mirror.com/gpue/foundationpose-weights/resolve/main/2023-10-28-18-33-37/model_best.pth -O FoundationPose/weights/2023-10-28-18-33-37/model_best.pth
+    wget -c https://hf-mirror.com/gpue/foundationpose-weights/resolve/main/2024-01-11-20-02-45/model_best.pth -O FoundationPose/weights/2024-01-11-20-02-45/model_best.pth
+
+    # demo: download mustard0.zip from FP readme → unzip to FoundationPose/demo_data/
+
+    # run demo with live window
+    xhost +local:root
+    docker exec -it -e DISPLAY=$DISPLAY -e XAUTHORITY=$HOME/.Xauthority -e QT_X11_NO_MITSHM=1 foundationpose bash -c "cd $HOME/Documents/FoundationPose && python run_demo.py"
+    ```
+
 ### 📷 Calibration
 
 First of all, we use the  Cobot Mobile ALOHA, manufactured by agilex.ai.
