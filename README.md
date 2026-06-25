@@ -80,40 +80,31 @@ Also, remember to adjust the Hand-Eye-Calibration in `eval_ros_Pose.py` and `eva
     ```
     Controls: left=paint, right=erase, `[`/`]`=brush size at runtime, z=undo, s=save, r=reset, q=quit
 
-    **Track peg** (same recorded video, `peg_test/`):
+    **Track peg** — use official FP `run_demo.py`:
     ```bash
     docker exec -it -e DISPLAY=$DISPLAY -e XAUTHORITY=$HOME/.Xauthority -e QT_X11_NO_MITSHM=1 foundationpose bash -c \
-      "python $HOME/Documents/PoseInsert/collect_data/run_demo.py \
-        --mesh_file demo_data/peg/mesh/Peg.obj --test_scene_dir demo_data/peg_test \
-        --symm_axis z --lock_symm_axis z --debug 1"
+      "cd $HOME/Documents/FoundationPose && python run_demo.py \
+        --mesh_file demo_data/peg/mesh/Peg.obj --test_scene_dir demo_data/peg_test --debug 1"
     ```
+    Cylinder may spin around its symmetry axis; that is expected. Ignore in-plane rotation if you only care about position and insert axis.
 
     **Track hole** — reuse rgb/depth, new mask + mesh (no re-record):
     ```bash
-    # once: copy video frames, keep masks separate from peg
     mkdir -p ~/Documents/FoundationPose/demo_data/hole_test
     cp -r ~/Documents/FoundationPose/demo_data/peg_test/rgb \
           ~/Documents/FoundationPose/demo_data/peg_test/depth \
           ~/Documents/FoundationPose/demo_data/peg_test/cam_K.txt \
           ~/Documents/FoundationPose/demo_data/hole_test/
 
-    # on host: paint hole on first frame → hole_test/masks/<first_rgb>.png
     python collect_data/paint_first_frame_mask.py \
       --scene_dir ~/Documents/FoundationPose/demo_data/hole_test
 
-    # in docker
-    docker exec -it -e DISPLAY=$DISPLAY -e XAUTHORITY=$HOME/.Xauthority -e QT_X11_NO_MITSHM=1 foundationpose bash -c \
-      "python $HOME/Documents/PoseInsert/collect_data/run_demo.py \
-        --mesh_file demo_data/hole/mesh/Hole.obj --test_scene_dir demo_data/hole_test \
-        --symm_axis x --lock_symm_axis x --debug 1"
-    ```
-
-    **Official FP `run_demo.py`** (peg example; no symmetry / lock options):
-    ```bash
     docker exec -it -e DISPLAY=$DISPLAY -e XAUTHORITY=$HOME/.Xauthority -e QT_X11_NO_MITSHM=1 foundationpose bash -c \
       "cd $HOME/Documents/FoundationPose && python run_demo.py \
-        --mesh_file demo_data/peg/mesh/Peg.obj --test_scene_dir demo_data/peg_test --debug 1"
+        --mesh_file demo_data/hole/mesh/Hole.obj --test_scene_dir demo_data/hole_test --debug 1"
     ```
+
+    Optional: `collect_data/run_demo.py` adds `--symm_axis` / `--lock_symm_axis` for cylinders; lock often hurts pose quality—prefer official `run_demo.py` above.
 
 ### 📷 Calibration
 
