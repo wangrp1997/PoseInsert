@@ -48,6 +48,73 @@ Also, remember to adjust the Hand-Eye-Calibration in `eval_ros_Pose.py` and `eva
     docker exec -it -e DISPLAY=$DISPLAY -e XAUTHORITY=$HOME/.Xauthority -e QT_X11_NO_MITSHM=1 foundationpose bash -c "cd $HOME/Documents/FoundationPose && python run_demo.py"
     ```
 
+4. **(Optional) Quick FP peg test** — record aligned RealSense RGB-D on the host (not in Docker), then run FP `run_demo.py`:
+    ```bash
+    pip install pyrealsense2
+    # Space: start/stop recording, q: quit
+    python collect_data/record_realsense_foundationpose.py
+    # default output: ~/Documents/FoundationPose/demo_data/peg_test/
+    ```
+
+    **First-frame mask (required once per scene):** FoundationPose only needs a mask on the **first RGB frame** to initialize tracking. The file must live in `masks/` and use the **same filename** as the first file in `rgb/` (sorted alphabetically; with the recorder that is usually the earliest timestamp).
+
+    ```
+    peg_test/
+    ├── rgb/1782369494161.png      ← first frame
+    ├── depth/1782369494161.png
+    ├── masks/1782369494161.png    ← you create this (object=white, background=black)
+    └── cam_K.txt
+    ```
+
+    Easiest: paint it with the helper script (run on host, needs a display).
+    Default scene is `peg_test`; use `--scene_dir` for hole or other scenes:
+    ```bash
+    # peg mask (default)
+    python collect_data/paint_first_frame_mask.py
+    # or set initial brush radius: --brush 20
+
+    # hole mask (separate scene dir — do not overwrite peg mask in peg_test/)
+    python collect_data/paint_first_frame_mask.py \
+      --scene_dir ~/Documents/FoundationPose/demo_data/hole_test \
+      --brush 20
+    ```
+    Controls: left=paint, right=erase, `[`/`]`=brush size at runtime, z=undo, s=save, r=reset, q=quit
+
+    **Track peg** (same recorded video, `peg_test/`):
+    ```bash
+    docker exec -it -e DISPLAY=$DISPLAY -e XAUTHORITY=$HOME/.Xauthority -e QT_X11_NO_MITSHM=1 foundationpose bash -c \
+      "python $HOME/Documents/PoseInsert/collect_data/run_demo.py \
+        --mesh_file demo_data/peg/mesh/Peg.obj --test_scene_dir demo_data/peg_test \
+        --symm_axis z --lock_symm_axis z --debug 1"
+    ```
+
+    **Track hole** — reuse rgb/depth, new mask + mesh (no re-record):
+    ```bash
+    # once: copy video frames, keep masks separate from peg
+    mkdir -p ~/Documents/FoundationPose/demo_data/hole_test
+    cp -r ~/Documents/FoundationPose/demo_data/peg_test/rgb \
+          ~/Documents/FoundationPose/demo_data/peg_test/depth \
+          ~/Documents/FoundationPose/demo_data/peg_test/cam_K.txt \
+          ~/Documents/FoundationPose/demo_data/hole_test/
+
+    # on host: paint hole on first frame → hole_test/masks/<first_rgb>.png
+    python collect_data/paint_first_frame_mask.py \
+      --scene_dir ~/Documents/FoundationPose/demo_data/hole_test
+
+    # in docker
+    docker exec -it -e DISPLAY=$DISPLAY -e XAUTHORITY=$HOME/.Xauthority -e QT_X11_NO_MITSHM=1 foundationpose bash -c \
+      "python $HOME/Documents/PoseInsert/collect_data/run_demo.py \
+        --mesh_file demo_data/hole/mesh/Hole.obj --test_scene_dir demo_data/hole_test \
+        --symm_axis x --lock_symm_axis x --debug 1"
+    ```
+
+    **Official FP `run_demo.py`** (peg example; no symmetry / lock options):
+    ```bash
+    docker exec -it -e DISPLAY=$DISPLAY -e XAUTHORITY=$HOME/.Xauthority -e QT_X11_NO_MITSHM=1 foundationpose bash -c \
+      "cd $HOME/Documents/FoundationPose && python run_demo.py \
+        --mesh_file demo_data/peg/mesh/Peg.obj --test_scene_dir demo_data/peg_test --debug 1"
+    ```
+
 ### 📷 Calibration
 
 First of all, we use the  Cobot Mobile ALOHA, manufactured by agilex.ai.
